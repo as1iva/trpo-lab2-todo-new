@@ -18,6 +18,9 @@ class TaskList:
         self.items.append({'title': title, 'done': False})
         self.save()
 
+    def search(self, query):
+        return [item for item in self.items if query.casefold() in item["title"].casefold()]
+
     def complete(self, number):
         if number < 1 or number > len(self.items):
             raise ValueError('Задача не найдена')
@@ -35,6 +38,7 @@ def main():
     parser.add_argument('--file', default='tasks.json')
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('list')
+    sub.add_parser('search').add_argument('query')
     sub.add_parser('add').add_argument('title')
     sub.add_parser('done').add_argument('number', type=int)
     sub.add_parser('remove').add_argument('number', type=int)
@@ -45,7 +49,8 @@ def main():
         elif args.command == 'done': tasks.complete(args.number)
         elif args.command == 'remove': tasks.remove(args.number)
         else:
-            for n, item in enumerate(tasks.items, 1):
+            items = tasks.search(args.query) if args.command == 'search' else tasks.items
+            for n, item in enumerate(items, 1):
                 print(f"{n}. [{'x' if item['done'] else ' '}] {item['title']}")
     except ValueError as exc:
         parser.error(str(exc))
