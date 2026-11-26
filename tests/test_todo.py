@@ -27,6 +27,12 @@ class TaskTests(unittest.TestCase):
         self.tasks.remove(1)
         self.assertEqual(TaskList(self.path).items, [])
 
+    def test_search_case_insensitive(self):
+        self.tasks.add("Купить хлеб")
+        self.tasks.add("Прочитать книгу")
+        self.assertEqual([x["title"] for x in self.tasks.search("ХЛЕБ")], ["Купить хлеб"])
+        self.assertEqual(self.tasks.search("нет"), [])
+
     def test_invalid_number(self):
         for n in (0, -1, 1):
             with self.assertRaises(ValueError): self.tasks.complete(n)
