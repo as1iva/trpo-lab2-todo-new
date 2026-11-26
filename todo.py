@@ -1,4 +1,4 @@
-"""Простой список задач с сохранением в JSON."""
+"""Список задач: операции и поиск, хранение в формате JSON."""
 import argparse
 import json
 from pathlib import Path
