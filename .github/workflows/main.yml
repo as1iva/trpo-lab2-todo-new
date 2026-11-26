@@ -19,3 +19,35 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
+  documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate documentation
+        run: python scripts/build_docs.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: documentation-${{ github.run_id }}
+          path: site/
+  merge:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'development' || github.head_ref == 'release') && !github.event.pull_request.draft
+    needs: [test, documentation]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge verified pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/pulls/$PR_NUMBER" > pr.json
+          test "$(jq -r .head.sha pr.json)" = "$HEAD_SHA"
+          test "$(jq -r .base.sha pr.json)" = "$BASE_SHA"
+          test "$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq .object.sha)" = "$BASE_SHA"
+          gh api --method PUT "repos/$GH_REPO/pulls/$PR_NUMBER/merge" -f sha="$HEAD_SHA" -f merge_method=merge
